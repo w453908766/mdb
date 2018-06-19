@@ -100,6 +100,9 @@ static std::unique_ptr<llvm::Module> openInputFile(LLVMContext &Context) {
   }
 }
 
+
+
+
 int main(int argc, char **argv) {
   // Print a stack trace if we signal out.
   sys::PrintStackTraceOnErrorSignal(argv[0]);
@@ -125,7 +128,7 @@ int main(int argc, char **argv) {
 
   GenericValue a = EE->runFunction(main, ArrayRef<GenericValue>());
 
-//  CallTree* CTree = EE->getCallTree();
+  Film* MainFilm = EE->MainFilm;
 //  CTree->dump(0);
 
 
@@ -133,8 +136,11 @@ int main(int argc, char **argv) {
   llvm::outs()<< a.IntVal <<"\n";
 
 
-  EE->dumpCallTree();
+//  EE->dumpCallTree();
 
+  MainFilm->dump();
+
+  MainFilm->Inst->deleteValue();
 
   return 0;
 }

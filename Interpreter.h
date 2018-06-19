@@ -23,6 +23,9 @@
 #include "llvm/Support/DataTypes.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
+
+#include "Film.h"
+
 namespace llvm {
 
 class IntrinsicLowering;
@@ -55,26 +58,7 @@ public:
 
 typedef std::vector<GenericValue> ValuePlaneTy;
 
-class CallTree {
-  public:
-  Function* Func;
-  CallTree* LastChild;
-  CallTree* Prev;
-  std::vector<unsigned> Stores;
 
-  CallTree(Function* F, CallTree* P):Func(F), LastChild(nullptr), Prev(P) {}
-  CallTree* Call(Function* F){
-    CallTree* CTree = new CallTree(F, LastChild);
-    this->LastChild = CTree;
-    return CTree;
-  }
-
-  void append(unsigned i){
-    Stores.push_back(i);
-  }
-
-
-};
 
 // ExecutionContext struct - This struct represents one stack frame currently
 // executing.
@@ -91,16 +75,16 @@ struct ExecutionContext {
 
   ExecutionContext() : CurFunction(nullptr), CurBB(nullptr), CurInst(nullptr) {}
 
-  CallTree* CurCallTree;
+ // CallTree* CurCallTree;
+  Film* CurFilm;
 };
 
-typedef std::pair<StoreInst*, GenericValue> AssginFrame;
 
 // Interpreter - This class represents the entirety of the interpreter.
 //
 class Interpreter : public ExecutionEngine, public InstVisitor<Interpreter> {
   GenericValue ExitValue;          // The return value of the called function
-  CallTree* MainCallTree;
+  //CallTree* MainCallTree;
 
   IntrinsicLowering *IL;
 
@@ -114,13 +98,13 @@ class Interpreter : public ExecutionEngine, public InstVisitor<Interpreter> {
   // registered with the atexit() library function.
   std::vector<Function*> AtExitHandlers;
 
-  void dumpCallTreeImpl(CallTree*, unsigned);
+//  void dumpCallTreeImpl(CallTree*, unsigned);
 
 public:
 
-  std::vector<AssginFrame *> GlobalEnv;
+  Film* MainFilm;
 
-  void dumpCallTree(){ dumpCallTreeImpl(MainCallTree, 0);}
+//  void dumpCallTree(){ dumpCallTreeImpl(MainCallTree, 0);}
 
   explicit Interpreter(std::unique_ptr<Module> M);
   ~Interpreter() override;
@@ -130,7 +114,7 @@ public:
   ///
   void runAtExitHandlers();
 
-  CallTree* getCallTree() { return MainCallTree;}
+ // CallTree* getCallTree() { return MainCallTree;}
 
 
   static void Register() {
@@ -155,7 +139,7 @@ public:
 
   // Methods used to execute code:
   // Place a call on the stack
-  void callFunction(Function *F, ArrayRef<GenericValue> ArgVals);
+  void callFunction(Function*, ArrayRef<GenericValue> ArgVals, Instruction*);
   void run();                // Execute instructions until nothing left to do
 
   // Opcode Implementations

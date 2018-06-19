@@ -18,6 +18,16 @@ entry:
 }
 
 ; Function Attrs: noinline nounwind optnone uwtable
+define void @g(i32* %aa) #0 {
+entry:
+  %aa.addr = alloca i32*, align 8
+  store i32* %aa, i32** %aa.addr, align 8
+  %0 = load i32*, i32** %aa.addr, align 8
+  store i32 10, i32* %0, align 4
+  ret void
+}
+
+; Function Attrs: noinline nounwind optnone uwtable
 define i32 @f(i32 %a1) #0 {
 entry:
   %a1.addr = alloca i32, align 4
@@ -25,11 +35,9 @@ entry:
   %0 = load i32, i32* %a1.addr, align 4
   %add = add nsw i32 %0, 1
   store i32 %add, i32* %a1.addr, align 4
+  call void @g(i32* %a1.addr)
   %1 = load i32, i32* %a1.addr, align 4
-  call void @h(i32 %1)
-  store i32 2, i32* %a1.addr, align 4
-  %2 = load i32, i32* %a1.addr, align 4
-  ret i32 %2
+  ret i32 %1
 }
 
 ; Function Attrs: noinline nounwind optnone uwtable

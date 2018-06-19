@@ -70,7 +70,7 @@ Interpreter::~Interpreter() {
 
 void Interpreter::runAtExitHandlers () {
   while (!AtExitHandlers.empty()) {
-    callFunction(AtExitHandlers.back(), None);
+    callFunction(AtExitHandlers.back(), None, nullptr);
     AtExitHandlers.pop_back();
     run();
   }
@@ -94,7 +94,7 @@ GenericValue Interpreter::runFunction(Function *F,
       ArgValues.slice(0, std::min(ArgValues.size(), ArgCount));
 
   // Set up the function call.
-  callFunction(F, ActualArgs);
+  callFunction(F, ActualArgs, CallInst::Create(F));
 
   // Start executing the function.
   run();

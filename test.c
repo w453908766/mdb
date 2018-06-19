@@ -4,10 +4,13 @@ int b;
 void h(int c){
   b=b+c;
 }
+void g(int* aa){
+  *aa = 10;
+}
 int f( int a1){
   a1=a1+1;
-  h(a1);
-  a1=2;
+  g(&a1);
+  
   return a1;
 }
 int main(){

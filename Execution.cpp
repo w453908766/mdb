@@ -26,6 +26,9 @@
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
 #include <cmath>
+
+#include "Utils.h"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "interpreter"
@@ -836,10 +839,13 @@ void Interpreter::exitCalled(GenericValue GV) {
 ///
 void Interpreter::popStackAndReturnValueToCaller(Type *RetTy,
                                                  GenericValue Result) {
+
+    ECStack.back().CurFilm->Val = Result;
   if (ECStack.size()==1)
-    MainCallTree = ECStack.back().CurCallTree;
+    MainFilm = ECStack.back().CurFilm;
   // Pop the current stack frame.
   ECStack.pop_back();
+
 
   if (ECStack.empty()) {  // Finished main.  Put result into exit code...
     if (RetTy && !RetTy->isVoidTy()) {          // Nonvoid return type?
@@ -1057,11 +1063,10 @@ void Interpreter::visitStoreInst(StoreInst &I) {
   if (I.isVolatile() && PrintVolatile)
     dbgs() << "Volatile store: " << I;
 
-  if(isa<GlobalVariable>(I.getPointerOperand())){
-    AssginFrame* AF = new AssginFrame(&I, Val);
-    GlobalEnv.push_back(AF);
-    SF.CurCallTree->append(GlobalEnv.size()-1);
-  }
+//  if(isa<GlobalVariable>(I.getPointerOperand())){
+    SF.CurFilm->makeStoreFilm(&I, Val);
+ // }
+  
 }
 
 //===----------------------------------------------------------------------===//
@@ -1069,6 +1074,7 @@ void Interpreter::visitStoreInst(StoreInst &I) {
 //===----------------------------------------------------------------------===//
 
 void Interpreter::visitCallSite(CallSite CS) {
+
   ExecutionContext &SF = ECStack.back();
 
   // Check to see if this is an intrinsic function call...
@@ -1126,7 +1132,7 @@ void Interpreter::visitCallSite(CallSite CS) {
   // To handle indirect calls, we must get the pointer value from the argument
   // and treat it as a function pointer.
   GenericValue SRC = getOperandValue(SF.Caller.getCalledValue(), SF);
-  callFunction((Function*)GVTOP(SRC), ArgVals);
+  callFunction((Function*)GVTOP(SRC), ArgVals, CS.getInstruction());
 }
 
 // auxiliary function for shift operations
@@ -2080,22 +2086,22 @@ GenericValue Interpreter::getOperandValue(Value *V, ExecutionContext &SF) {
 //===----------------------------------------------------------------------===//
 // callFunction - Execute the specified function...
 //
-void Interpreter::callFunction(Function *F, ArrayRef<GenericValue> ArgVals) {
+void Interpreter::callFunction(Function* F, ArrayRef<GenericValue> ArgVals, Instruction* Call) {
   assert((ECStack.empty() || !ECStack.back().Caller.getInstruction() ||
           ECStack.back().Caller.arg_size() == ArgVals.size()) &&
          "Incorrect number of arguments passed into function call!");
 
-  CallTree* CTree = 
+  Film* newFilm = 
     ECStack.size() == 0 ?
-    new CallTree(F, nullptr):
-    ECStack.back().CurCallTree->Call(F);
+    new Film(Call, ArgVals, nullptr):
+    ECStack.back().CurFilm->makeCallFilm(Call, ArgVals);
 
   // Make a new stack frame... and fill it in.
   ECStack.emplace_back();
   ExecutionContext &StackFrame = ECStack.back();
   StackFrame.CurFunction = F;
 
-  StackFrame.CurCallTree = CTree;
+  StackFrame.CurFilm = newFilm;
 
   // Special handling for external functions.
   if (F->isDeclaration()) {
@@ -2136,29 +2142,6 @@ void Interpreter::run() {
 
     DEBUG(dbgs() << "About to interpret: " << I);
     visit(I);   // Dispatch to one of the visit* methods...
-  }
-}
-
-
-
-void Interpreter::dumpCallTreeImpl(CallTree* CTree, unsigned space){
-  if(CTree){
-    dumpCallTreeImpl(CTree->Prev, space);
-    for(unsigned i=0;i<space;i++)llvm::outs()<<' ';
-    llvm::outs()<< "|-" << CTree->Func->getName() << '\n';
-    for(unsigned i : CTree->Stores){
-
-      for(unsigned i=0;i<space+2;i++)llvm::outs()<<' ';
-      llvm::outs() 
-        << "|-" 
-        << GlobalEnv[i]->first->getPointerOperand()->getName()
-        << '='
-        << GlobalEnv[i]->second.IntVal
-        << '\n';
-
-
-    }
-    dumpCallTreeImpl(CTree->LastChild, space+2);
   }
 }
 
