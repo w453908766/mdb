@@ -12,13 +12,16 @@ public:
   GenericValue Val;
   Film* Prev;
 
-  std::vector<GenericValue> ArgVals;
-  Film* LastInst;
+  std::vector<GenericValue> ArgVals; // for CallInst
+  Film* LastInst; // for CallInst
+
+  
 
   Film(Instruction* Call, ArrayRef<GenericValue> &ArgVals0, Film* Prev): 
     Inst(Call), Prev(Prev), LastInst(nullptr) {
       for(GenericValue V:ArgVals0)
         ArgVals.push_back(V);
+      
     }
 
   Film(Instruction* Store, GenericValue Val, Film* Prev):

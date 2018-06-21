@@ -34,6 +34,10 @@ static cl::opt<std::string> OutputFilename("o",
                                            cl::value_desc("filename"),
                                            cl::init("-"));
 
+cl::list<std::string>
+    InputArgv(cl::ConsumeAfter, cl::desc("<program arguments>..."));
+
+
 static cl::opt<bool>
     ShowAnnotations("show-annotations",
                     cl::desc("Add informational comments to the .ll file"));
@@ -102,8 +106,7 @@ static std::unique_ptr<llvm::Module> openInputFile(LLVMContext &Context) {
 
 
 
-
-int main(int argc, char **argv) {
+int main(int argc, char **argv, char * const *envp){
   // Print a stack trace if we signal out.
   sys::PrintStackTraceOnErrorSignal(argv[0]);
   PrettyStackTraceProgram X(argc, argv);
@@ -122,18 +125,17 @@ int main(int argc, char **argv) {
   Interpreter* EE = static_cast<Interpreter*>(Interpreter::create(move(M)));
   
  
-  
-  
   Function* main = EE->FindFunctionNamed("main");
 
-  GenericValue a = EE->runFunction(main, ArrayRef<GenericValue>());
+  EE->runFunctionAsMain(main, InputArgv, envp);
+  
+
+  //GenericValue a = EE->runFunction(main, ArrayRef<GenericValue>());
 
   Film* MainFilm = EE->MainFilm;
 //  CTree->dump(0);
 
 
-
-  llvm::outs()<< a.IntVal <<"\n";
 
 
 //  EE->dumpCallTree();

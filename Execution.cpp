@@ -19,6 +19,9 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Metadata.h"
+#include "llvm/IR/DebugInfoMetadata.h"
+
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -26,10 +29,22 @@
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
 #include <cmath>
-
+#include <map>
 #include "Utils.h"
 
 using namespace llvm;
+
+std::map<Value*, std::pair<StoreInst*, GenericValue> > StoreMap;
+
+bool couldShoot(Function* F){
+  return F->getName().equals("main") || F->getName().equals("fff") || F->getName().equals("fact");
+//  return true;
+}
+
+int shootKind(Function* Caller, Function* Callee){
+  return couldShoot(Caller)*2 + couldShoot(Callee);
+}
+
 
 #define DEBUG_TYPE "interpreter"
 
@@ -841,8 +856,16 @@ void Interpreter::popStackAndReturnValueToCaller(Type *RetTy,
                                                  GenericValue Result) {
 
     ECStack.back().CurFilm->Val = Result;
+    
   if (ECStack.size()==1)
     MainFilm = ECStack.back().CurFilm;
+  else if(shootKind(ECStack[ECStack.size()-2].CurFunction, ECStack.back().CurFunction) == 2){
+      for(auto iter : StoreMap)
+        ECStack.back().CurFilm->makeStoreFilm(iter.second.first, iter.second.second);
+      StoreMap.clear();
+  } 
+
+
   // Pop the current stack frame.
   ECStack.pop_back();
 
@@ -1064,9 +1087,12 @@ void Interpreter::visitStoreInst(StoreInst &I) {
     dbgs() << "Volatile store: " << I;
 
 //  if(isa<GlobalVariable>(I.getPointerOperand())){
+  if(couldShoot(I.getFunction()))
     SF.CurFilm->makeStoreFilm(&I, Val);
+  else if(isa<GlobalVariable>(I.getPointerOperand()))
+    StoreMap.insert(std::pair<Value*, std::pair<StoreInst*, GenericValue> > (I.getPointerOperand(), std::pair<StoreInst*, GenericValue> (&I, Val)));
  // }
-  
+   
 }
 
 //===----------------------------------------------------------------------===//
@@ -2091,10 +2117,7 @@ void Interpreter::callFunction(Function* F, ArrayRef<GenericValue> ArgVals, Inst
           ECStack.back().Caller.arg_size() == ArgVals.size()) &&
          "Incorrect number of arguments passed into function call!");
 
-  Film* newFilm = 
-    ECStack.size() == 0 ?
-    new Film(Call, ArgVals, nullptr):
-    ECStack.back().CurFilm->makeCallFilm(Call, ArgVals);
+  Film* newFilm = shootFilm(F, ArgVals, Call);
 
   // Make a new stack frame... and fill it in.
   ECStack.emplace_back();
@@ -2145,3 +2168,22 @@ void Interpreter::run() {
   }
 }
 
+Film* Interpreter::shootFilm(Function* F, ArrayRef<GenericValue> &ArgVals, Instruction* Call){
+
+  if(ECStack.size() == 0)
+    return new Film(Call, ArgVals, nullptr);
+  else switch(shootKind(ECStack.back().CurFunction, F)){
+    case 0: 
+      return ECStack.back().CurFilm;
+    case 1:
+      for(auto iter : StoreMap)
+        ECStack.back().CurFilm->makeStoreFilm(iter.second.first, iter.second.second);
+      StoreMap.clear();
+    case 2:
+    case 3:
+      return ECStack.back().CurFilm->makeCallFilm(Call, ArgVals);
+    default:
+      return nullptr;
+  }
+
+}

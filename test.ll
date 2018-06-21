@@ -6,7 +6,7 @@ target triple = "x86_64-unknown-linux-gnu"
 @b = common global i32 0, align 4
 
 ; Function Attrs: noinline nounwind optnone uwtable
-define void @h(i32 %c) #0 {
+define void @fff(i32 %c) #0 {
 entry:
   %c.addr = alloca i32, align 4
   store i32 %c, i32* %c.addr, align 4
@@ -18,12 +18,14 @@ entry:
 }
 
 ; Function Attrs: noinline nounwind optnone uwtable
-define void @g(i32* %aa) #0 {
+define void @g(i32 %aa) #0 {
 entry:
-  %aa.addr = alloca i32*, align 8
-  store i32* %aa, i32** %aa.addr, align 8
-  %0 = load i32*, i32** %aa.addr, align 8
-  store i32 10, i32* %0, align 4
+  %aa.addr = alloca i32, align 4
+  store i32 %aa, i32* %aa.addr, align 4
+  store i32 3, i32* @b, align 4
+  store i32 10, i32* %aa.addr, align 4
+  %0 = load i32, i32* %aa.addr, align 4
+  call void @fff(i32 %0)
   ret void
 }
 
@@ -35,9 +37,39 @@ entry:
   %0 = load i32, i32* %a1.addr, align 4
   %add = add nsw i32 %0, 1
   store i32 %add, i32* %a1.addr, align 4
-  call void @g(i32* %a1.addr)
   %1 = load i32, i32* %a1.addr, align 4
-  ret i32 %1
+  call void @g(i32 %1)
+  store i32 90, i32* @b, align 4
+  %2 = load i32, i32* %a1.addr, align 4
+  ret i32 %2
+}
+
+; Function Attrs: noinline nounwind optnone uwtable
+define i32 @fact(i32 %n) #0 {
+entry:
+  %retval = alloca i32, align 4
+  %n.addr = alloca i32, align 4
+  store i32 %n, i32* %n.addr, align 4
+  %0 = load i32, i32* %n.addr, align 4
+  %cmp = icmp eq i32 0, %0
+  br i1 %cmp, label %if.then, label %if.else
+
+if.then:                                          ; preds = %entry
+  store i32 1, i32* %retval, align 4
+  br label %return
+
+if.else:                                          ; preds = %entry
+  %1 = load i32, i32* %n.addr, align 4
+  %2 = load i32, i32* %n.addr, align 4
+  %sub = sub nsw i32 %2, 1
+  %call = call i32 @fact(i32 %sub)
+  %mul = mul nsw i32 %1, %call
+  store i32 %mul, i32* %retval, align 4
+  br label %return
+
+return:                                           ; preds = %if.else, %if.then
+  %3 = load i32, i32* %retval, align 4
+  ret i32 %3
 }
 
 ; Function Attrs: noinline nounwind optnone uwtable
@@ -50,11 +82,10 @@ entry:
   store i32 %call, i32* %a0, align 4
   store i32 5, i32* %a0, align 4
   %0 = load i32, i32* %a0, align 4
-  call void @h(i32 %0)
+  call void @fff(i32 %0)
   %1 = load i32, i32* %a0, align 4
   store i32 %1, i32* @b, align 4
-  %2 = load i32, i32* %a0, align 4
-  ret i32 %2
+  ret i32 5
 }
 
 attributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }

@@ -139,6 +139,8 @@ public:
 
   // Methods used to execute code:
   // Place a call on the stack
+  Film* shootFilm(Function*, ArrayRef<GenericValue> &, Instruction*);
+
   void callFunction(Function*, ArrayRef<GenericValue> ArgVals, Instruction*);
   void run();                // Execute instructions until nothing left to do
 
