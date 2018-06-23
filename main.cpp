@@ -126,6 +126,11 @@ void printPosMap(){
   }
 }
 
+
+
+Film* run(Interpreter*);
+Film* runf(Interpreter*);
+
 int main(int argc, char **argv, char * const *envp){
   // Print a stack trace if we signal out.
   sys::PrintStackTraceOnErrorSignal(argv[0]);
@@ -143,35 +148,60 @@ int main(int argc, char **argv, char * const *envp){
   std::unique_ptr<llvm::Module> M = openInputFile(Context);
 
   Interpreter* EE = static_cast<Interpreter*>(Interpreter::create(move(M)));
-  
- 
-  Function* main = EE->FindFunctionNamed("main");
 
-  EE->runFunctionAsMain(main, InputArgv, envp);
-
-  Film* MainFilm = EE->MainFilm;
+  Film* MainFilm = run(EE);
+  Film* fFilm = runf(EE);
 
   MainFilm->dump();
 
-  llvm::outs() << "----------------------------------------\n";
-
+  fFilm->dump();
+ 
   MainFilm->makeClue(nullptr);
-
   putPosMap(MainFilm);
-
   printPosMap();
 
-  llvm::outs() << "----------------------------------------\n";
-
-  auto start = posMap.lower_bound(std::make_pair(5,4));
-  auto end = posMap.upper_bound(std::make_pair(5,4));
-  for(auto i=start; i!=end; i++){
-    llvm::outs() << (i->second.IntVal) << '\n';
-
-  }
-  
-
   MainFilm->Inst->deleteValue();
+  fFilm->Inst->deleteValue();
   return 0;
 }
 
+
+
+
+
+Film* run(Interpreter* EE){
+
+Function* main = EE->FindFunctionNamed("main");
+
+ EE->runFunctionAsMain(main, InputArgv, nullptr);
+
+  Film* MainFilm = EE->MainFilm;
+
+
+  return MainFilm;
+}
+
+Film* runf(Interpreter* EE){
+    
+  GlobalVariable* b = EE->FindGlobalVariableNamed("b");
+  GenericValue Val;
+  Val.IntVal = APInt(32, 900);
+  GenericValue SRC =PTOGV(EE->getPointerToGlobal(b)); 
+  EE->StoreValueToMemory(Val, (GenericValue *)GVTOP(SRC), b->getType()->getElementType());
+
+
+  GenericValue a1;
+  a1.IntVal = APInt(32, 100);
+  vector<GenericValue> args;
+  args.push_back(a1);
+
+
+  Function* f = EE->FindFunctionNamed("f");
+
+  EE->runFunction(f,  args);
+
+  Film* fFilm = EE->MainFilm;
+
+  return fFilm;
+
+}

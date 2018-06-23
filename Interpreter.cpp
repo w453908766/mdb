@@ -93,11 +93,23 @@ GenericValue Interpreter::runFunction(Function *F,
   ArrayRef<GenericValue> ActualArgs =
       ArgValues.slice(0, std::min(ArgValues.size(), ArgCount));
 
-  // Set up the function call.
-  callFunction(F, ActualArgs, CallInst::Create(F));
 
+  std::vector<Value*> args;
+  for(Argument &A : F->args())
+    args.push_back(llvm::ConstantInt::getNullValue(A.getType()));
+
+  ArrayRef<Value*> argsRef(args);
+
+  // Set up the function call.
+  callFunction(F, ActualArgs, llvm::CallInst::Create(F, argsRef));
+
+  
   // Start executing the function.
   run();
+  
+
+
+
 
   return ExitValue;
 }
