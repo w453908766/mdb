@@ -36,6 +36,7 @@ using namespace llvm;
 
 std::map<Value*, std::pair<StoreInst*, GenericValue> > StoreMap;
 
+
 bool couldShoot(Function* F){
   return F->getName().equals("main") || F->getName().equals("fff") || F->getName().equals("fact");
 //  return true;

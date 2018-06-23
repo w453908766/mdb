@@ -105,6 +105,26 @@ static std::unique_ptr<llvm::Module> openInputFile(LLVMContext &Context) {
 }
 
 
+std::multimap<std::pair<unsigned, unsigned>, GenericValue> posMap;
+
+void putPosMap(Film* Films){
+  for(Film* F=Films; F; F=F->Clue){
+    if(F->Inst->getDebugLoc()){
+      const DebugLoc &Loc = F->Inst->getDebugLoc();
+      auto item = std::make_pair(std::make_pair(Loc.getLine(), Loc.getCol()), F->Val);
+      posMap.insert(item);
+    }
+  }      
+}
+
+void printPosMap(){
+  for(auto item : posMap){
+    unsigned line = item.first.first;
+    unsigned col  = item.first.second;
+    GenericValue val = item.second;
+    llvm::outs() << line << ':' << col << ' ' << val.IntVal << '\n';
+  }
+}
 
 int main(int argc, char **argv, char * const *envp){
   // Print a stack trace if we signal out.
@@ -128,21 +148,30 @@ int main(int argc, char **argv, char * const *envp){
   Function* main = EE->FindFunctionNamed("main");
 
   EE->runFunctionAsMain(main, InputArgv, envp);
-  
-
-  //GenericValue a = EE->runFunction(main, ArrayRef<GenericValue>());
 
   Film* MainFilm = EE->MainFilm;
-//  CTree->dump(0);
-
-
-
-
-//  EE->dumpCallTree();
 
   MainFilm->dump();
 
-  MainFilm->Inst->deleteValue();
+  llvm::outs() << "----------------------------------------\n";
 
+  MainFilm->makeClue(nullptr);
+
+  putPosMap(MainFilm);
+
+  printPosMap();
+
+  llvm::outs() << "----------------------------------------\n";
+
+  auto start = posMap.lower_bound(std::make_pair(5,4));
+  auto end = posMap.upper_bound(std::make_pair(5,4));
+  for(auto i=start; i!=end; i++){
+    llvm::outs() << (i->second.IntVal) << '\n';
+
+  }
+  
+
+  MainFilm->Inst->deleteValue();
   return 0;
 }
+

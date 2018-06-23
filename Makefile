@@ -10,7 +10,7 @@ CXX = g++
 llvm-goback: Makefile $(SHARES)
 	ccache g++ -g $(SHARES) -o mdb -Wl,-rpath,/home/wang/Music/mdb  `llvm-config --ldflags --system-libs --libs interpreter asmparser`
 
-$(OBJECTS): %.o: %.cpp Makefile Interpreter.h
+$(OBJECTS): %.o: %.cpp Makefile Interpreter.h Film.h
 	ccache $(CXX) -g -c $< -o $@ `$(LLVM_CONFIG) --cxxflags`
 	
 $(SHARES): %.so: %.o Makefile

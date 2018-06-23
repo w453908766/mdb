@@ -15,6 +15,7 @@ public:
   std::vector<GenericValue> ArgVals; // for CallInst
   Film* LastInst; // for CallInst
 
+  Film* Clue;
   
 
   Film(Instruction* Call, ArrayRef<GenericValue> &ArgVals0, Film* Prev): 
@@ -39,6 +40,41 @@ public:
   }
 
   void dump() { dumpImpl(0); };
+
+  Film* makeClue(Film* tail){
+    if((void*)this == nullptr) return tail;
+    else if(isa<StoreInst>(Inst)){
+      this->Clue = this->Prev->makeClue(tail);
+      return this;
+    } else {
+      this->Clue = this->LastInst->makeClue(this->Prev->makeClue(tail));
+      return this;
+    }
+  }
+
+  void dumpClue(){
+    if((void*)this == nullptr) return;
+    else if(StoreInst* Store = dyn_cast<StoreInst>(Inst)){
+
+      this->Clue->dumpClue();
+      llvm::outs() << Store->getPointerOperand()->getName() << '=' << Val.IntVal << '\n';
+    } else {
+
+        this->Clue->dumpClue();
+
+        CallInst* Call = cast<CallInst>(Inst);
+        llvm::outs() << Call->getCalledFunction()->getName();
+     
+        for(GenericValue V:ArgVals)
+          llvm::outs() << ' ' <<  V.IntVal;
+
+        llvm::outs() << " = " << Val.IntVal << '\n';
+        
+    }
+  }
+
+
+
 private:
 
   void dumpImpl(unsigned space){
