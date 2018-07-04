@@ -75,7 +75,6 @@ struct ExecutionContext {
 
   ExecutionContext() : CurFunction(nullptr), CurBB(nullptr), CurInst(nullptr) {}
 
- // CallTree* CurCallTree;
   Film* CurFilm;
 };
 
@@ -103,6 +102,8 @@ class Interpreter : public ExecutionEngine, public InstVisitor<Interpreter> {
 public:
 
   Film* MainFilm;
+  std::vector<Spot> FootMark;
+  std::map<Value*, Spot> Mileage;
 
 //  void dumpCallTree(){ dumpCallTreeImpl(MainCallTree, 0);}
 

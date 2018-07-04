@@ -104,7 +104,7 @@ static std::unique_ptr<llvm::Module> openInputFile(LLVMContext &Context) {
   }
 }
 
-
+/*
 std::multimap<std::pair<unsigned, unsigned>, GenericValue> posMap;
 
 void putPosMap(Film* Films){
@@ -125,7 +125,7 @@ void printPosMap(){
     llvm::outs() << line << ':' << col << ' ' << val.IntVal << '\n';
   }
 }
-
+*/
 
 
 Film* run(Interpreter*);
@@ -150,18 +150,12 @@ int main(int argc, char **argv, char * const *envp){
   Interpreter* EE = static_cast<Interpreter*>(Interpreter::create(move(M)));
 
   Film* MainFilm = run(EE);
-  Film* fFilm = runf(EE);
+//  Film* fFilm = runf(EE);
 
-  MainFilm->dump();
 
-  fFilm->dump();
  
-  MainFilm->makeClue(nullptr);
-  putPosMap(MainFilm);
-  printPosMap();
-
-  MainFilm->Inst->deleteValue();
-  fFilm->Inst->deleteValue();
+   MainFilm->Inst->deleteValue();
+//  fFilm->Inst->deleteValue();
   return 0;
 }
 

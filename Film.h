@@ -5,6 +5,7 @@
 
 using namespace llvm;
 
+typedef std::pair<StoreInst*, GenericValue> Spot;
 
 class Film {
 public:
@@ -15,32 +16,35 @@ public:
   std::vector<GenericValue> ArgVals; // for CallInst
   Film* LastInst; // for CallInst
 
-  Film* Clue;
+  unsigned EnvBefore;
+  unsigned EnvAfter;
+
+  //Film* Clue;
   
 
-  Film(Instruction* Call, ArrayRef<GenericValue> &ArgVals0, Film* Prev): 
-    Inst(Call), Prev(Prev), LastInst(nullptr) {
+  Film(Instruction* Call, ArrayRef<GenericValue> &ArgVals0, Film* Prev, unsigned CurEnv):
+    Inst(Call), Prev(Prev), LastInst(nullptr), EnvBefore(CurEnv) {
       for(GenericValue V:ArgVals0)
         ArgVals.push_back(V);
       
     }
 
+/*
   Film(Instruction* Store, GenericValue Val, Film* Prev):
     Inst(Store), Val(Val), Prev(Prev), LastInst(nullptr) {}
-
   void makeStoreFilm(Instruction* Store, GenericValue Val){
     Film* newFilm = new Film(Store, Val, this->LastInst);
     this->LastInst = newFilm;
   }
-
-  Film* makeCallFilm(Instruction* Call, ArrayRef<GenericValue> &ArgVals){
-    Film* newFilm = new Film(Call, ArgVals, this->LastInst);
+*/
+  Film* makeCallFilm(Instruction* Call, ArrayRef<GenericValue> &ArgVals, unsigned CurEnv){
+    Film* newFilm = new Film(Call, ArgVals, this->LastInst, CurEnv);
     this->LastInst = newFilm;
     return newFilm;
   }
 
+/*
   void dump() { dumpImpl(0); };
-
   Film* makeClue(Film* tail){
     if((void*)this == nullptr) return tail;
     else if(isa<StoreInst>(Inst)){
@@ -73,10 +77,10 @@ public:
     }
   }
 
-
+*/
 
 private:
-
+/*
   void dumpImpl(unsigned space){
     if((void*)this == nullptr) return;
       Prev->dumpImpl(space);
@@ -96,6 +100,24 @@ private:
         putIndent(space+2);
         llvm::outs() << "return " << Val.IntVal << '\n';
       }
-}
 
+   unsigned dump(unsigned i){
+     if((void*)this == nullptr)return;
+
+     unsigned k = Prev->dump(i);
+     for(unsigned kk=k;kk<this->EnvBefore;kk++){
+       llvm::outs() << 
+
+
+     CallInst* Call = cast<CallInst>(Inst);
+     llvm::outs() << Call->getCalledFunction()->getName();
+     
+     for(GenericValue V:ArgVals)
+       llvm::outs() << ' ' <<  V.IntVal;
+     llvm::outs()<<'\n';
+     for(
+
+
+}
+*/
 };

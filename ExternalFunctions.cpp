@@ -22,7 +22,6 @@
 #include "Interpreter.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "config.h" // Detect libffi
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"

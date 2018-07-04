@@ -34,18 +34,17 @@
 
 using namespace llvm;
 
-std::map<Value*, std::pair<StoreInst*, GenericValue> > StoreMap;
 
 
 bool couldShoot(Function* F){
   return F->getName().equals("main") || F->getName().equals("fff") || F->getName().equals("fact");
 //  return true;
 }
-
+/*
 int shootKind(Function* Caller, Function* Callee){
   return couldShoot(Caller)*2 + couldShoot(Callee);
 }
-
+*/
 
 #define DEBUG_TYPE "interpreter"
 
@@ -860,10 +859,13 @@ void Interpreter::popStackAndReturnValueToCaller(Type *RetTy,
     
   if (ECStack.size()==1)
     MainFilm = ECStack.back().CurFilm;
-  else if(shootKind(ECStack[ECStack.size()-2].CurFunction, ECStack.back().CurFunction) == 2){
-      for(auto iter : StoreMap)
-        ECStack.back().CurFilm->makeStoreFilm(iter.second.first, iter.second.second);
-      StoreMap.clear();
+  
+  if(ECStack.size()==1 || 
+     ECStack[ECStack.size()-2].CurFilm != ECStack.back().CurFilm) {
+    for(auto M : Mileage)
+      FootMark.push_back(M.second);
+    Mileage.clear();
+    ECStack.back().CurFilm->EnvAfter = Mileage.size();
   } 
 
 
@@ -1087,12 +1089,9 @@ void Interpreter::visitStoreInst(StoreInst &I) {
   if (I.isVolatile() && PrintVolatile)
     dbgs() << "Volatile store: " << I;
 
-//  if(isa<GlobalVariable>(I.getPointerOperand())){
-  if(couldShoot(I.getFunction()))
-    SF.CurFilm->makeStoreFilm(&I, Val);
-  else if(isa<GlobalVariable>(I.getPointerOperand()))
-    StoreMap.insert(std::pair<Value*, std::pair<StoreInst*, GenericValue> > (I.getPointerOperand(), std::pair<StoreInst*, GenericValue> (&I, Val)));
- // }
+  if(isa<GlobalVariable>(I.getPointerOperand())){
+    Mileage.insert(std::make_pair(I.getPointerOperand(), std::make_pair(&I, Val)));
+  }
    
 }
 
@@ -2172,19 +2171,13 @@ void Interpreter::run() {
 Film* Interpreter::shootFilm(Function* F, ArrayRef<GenericValue> &ArgVals, Instruction* Call){
 
   if(ECStack.size() == 0)
-    return new Film(Call, ArgVals, nullptr);
-  else switch(shootKind(ECStack.back().CurFunction, F)){
-    case 0: 
-      return ECStack.back().CurFilm;
-    case 1:
-      for(auto iter : StoreMap)
-        ECStack.back().CurFilm->makeStoreFilm(iter.second.first, iter.second.second);
-      StoreMap.clear();
-    case 2:
-    case 3:
-      return ECStack.back().CurFilm->makeCallFilm(Call, ArgVals);
-    default:
-      return nullptr;
+    return new Film(Call, ArgVals, nullptr, 0);
+  else if(couldShoot(ECStack.back().CurFunction) || couldShoot(F)){
+    for(auto M : Mileage)
+      FootMark.push_back(M.second);
+    Mileage.clear();
+    return ECStack.back().CurFilm->makeCallFilm(Call, ArgVals, FootMark.size());
   }
-
+  else 
+    return ECStack.back().CurFilm;
 }
